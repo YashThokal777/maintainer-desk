@@ -139,7 +139,8 @@ def live(repo: str) -> None:
         helper = "credential.helper=!gh auth git-credential"
         run("git", "-c", helper, "clone", "-q", f"https://github.com/{repo}.git", str(root))
         run("git", "config", "credential.helper", "!gh auth git-credential", cwd=root)
-        run("git", "checkout", "-q", "-b", "fix-empty-mean", cwd=root)
+        branch = f"fix-empty-mean-{number}"  # new name per run, so reruns never clash
+        run("git", "checkout", "-q", "-b", branch, cwd=root)
         (root / "tinystats.py").write_text(FIX, encoding="utf-8")
         with (root / "test_tinystats.py").open("a", encoding="utf-8") as f:
             f.write(textwrap.dedent('''
@@ -150,8 +151,8 @@ def live(repo: str) -> None:
                         mean([])
             '''))
         run("git", "commit", "-q", "-am", f"Raise ValueError for mean() of an empty list (#{number})", cwd=root)
-        run("git", "push", "-q", "-u", "origin", "fix-empty-mean", cwd=root)
-        run("gh", "pr", "create", "--repo", repo, "--head", "fix-empty-mean", "--base", "main",
+        run("git", "push", "-q", "-u", "origin", branch, cwd=root)
+        run("gh", "pr", "create", "--repo", repo, "--head", branch, "--base", "main",
             "--title", "Raise ValueError for empty input",
             "--body", f"Fixes #{number}. `mean([])` now raises a clear ValueError, with a test.", cwd=root)
     print("\nDone: one new issue and one PR. desk-watcher posts them on its next poll (or say `@desk-watcher check`).")
