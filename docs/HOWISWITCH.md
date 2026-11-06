@@ -18,7 +18,7 @@ In the demo, the reviewer caught a bug the PR's own tests missed.
 The whole desk (2 agents, 3 linked rooms, roles and kickoffs) is one Switch template, so anyone can spin it up in one click.
 
 Code: https://github.com/YashThokal777/maintainer-desk
-Demo: <link>
+Demo: https://youtu.be/9JXPkAAXD48
 
 Built with @Switch, @WeMakeDevs and @DevTools Academy
 

@@ -96,7 +96,7 @@ if event == "ping":
 ## Links
 
 - Code: https://github.com/YashThokal777/maintainer-desk
-- Demo video: <link>
+- Demo video: https://youtu.be/9JXPkAAXD48
 - Switch: https://github.com/sandbox-quantum/switch · docs: https://docs.switchagents.ai
 
 #HowISwitch

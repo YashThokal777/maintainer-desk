@@ -15,7 +15,7 @@ Open source and product teams lose hours a week to first-pass triage: labelling 
 https://github.com/YashThokal777/maintainer-desk
 
 **Demo video**
-<YouTube/Loom link, under 3 minutes, unlisted>
+https://youtu.be/9JXPkAAXD48
 
 **How did you use Switch?**
 - Agents: three custom agents I wrote on the Switch agent protocol. desk-watcher (Python) polls GitHub and posts every new issue and PR. desk-triager and desk-reviewer have Claude Code as their brain: each chat thread is one headless `claude -p` session, resumed on the next message, with a tool allow-list (read, gh, git, python). All three register via POST /agents and hold the WebSocket connection with ping/pong and a position. The two Claude agents listen with filter=all, so a bare "yes" in their thread reaches them. They reply in threads with the connect_to_room + post_message operations, and they open each other's addressing to "anyone" with update_agent_detail (Switch lets an agent change another agent with the same owner, never itself).
