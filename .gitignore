@@ -1,0 +1,12 @@
+.env
+.desk-state.json
+.desk-state.json.tmp
+__pycache__/
+*.egg-info/
+.pytest_cache/
+.venv/
+build/
+dist/
+.desk-state.*.json
+.desk-state.*.json.tmp
+.agents/

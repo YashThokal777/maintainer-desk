@@ -1,0 +1,124 @@
+# Maintainer Desk: an open source maintainer team, with AI teammates, in chat.
+#
+# Creates three linked rooms for one GitHub repository and puts three custom
+# agents (Switch agent protocol) to work in them:
+#
+#   {team}-intake    desk-watcher posts every new issue and pull request here
+#                    and mentions the triager. The triager sorts it, and a
+#                    maintainer confirms before anything changes on GitHub.
+#   {team}-review    the triager hands pull requests to the reviewer, which
+#                    checks them out, runs the tests and drafts a review. A
+#                    maintainer approves the draft before it is posted.
+#   {team}-release   merged work lands here; the triager keeps release notes.
+#
+# The triager and reviewer are Claude Code (headless) behind the agent
+# protocol; see desk_agents/ in the repo. The rule every agent follows: read
+# GitHub freely, change nothing on GitHub until a person in the room has said
+# yes to that exact action. Agents never merge.
+#
+# Before using it, register and start the three agents (see the README) so
+# the agent params below find them.
+version: 1
+
+params:
+  team:
+    type: string
+    label: Desk name
+    description: Prefix for every room this creates
+    default: desk
+    pattern: "[a-z][a-z0-9-]*"
+  repo:
+    type: string
+    label: GitHub repository
+    description: The repository the desk looks after, as owner/name
+    pattern: "[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+"
+  watcher:
+    type: agent
+    label: GitHub watcher
+    description: Posts every new issue and PR into intake (desk_watcher)
+    default: [desk-watcher]
+  triager:
+    type: agent
+    label: Triager
+    description: Sorts new issues and PRs and proposes the GitHub action (desk_agents triager)
+    default: [desk-triager]
+  reviewer:
+    type: agent
+    label: Reviewer
+    description: Runs the tests on each PR and drafts the review (desk_agents reviewer)
+    default: [desk-reviewer]
+  bridge:
+    type: bridge
+    description: Where the rooms are mirrored. Left empty, they are created on the server's default app, or as Switch-only rooms.
+    default: [Discord, Slack, Mattermost, $first]
+    required: false
+
+group:
+  name: "{team} maintainer desk"
+  description: Issue triage, PR review and release notes for {repo}, with AI teammates
+
+rooms:
+  - name: "{team}-intake"
+    description: New issues and PRs for {repo} arrive here; the triager sorts them and maintainers confirm
+    bridge: "{bridge}"
+    agents: ["{watcher}", "{triager}"]
+    users: ["{$creator}"]
+    instructions: |
+      This is the intake room of the maintainer desk for {repo}.
+      desk-watcher posts every new issue and pull request here and mentions
+      the triager. The triager proposes labels and next steps; a maintainer
+      answers "yes", "no" or with an edit, in the same thread. Nothing changes
+      on GitHub without that yes. Pull requests move to {team}-review.
+    roles:
+      - name: triage-lead
+        exclusive: true
+        instructions: |
+          You answer every new item desk-watcher posts in this room, and you
+          own the backlog. Follow the human gate: propose, wait for a yes,
+          then act.
+    kickoff: |
+      @{triager} this is the intake room for {repo}. Introduce yourself
+      in two lines. Then read the open issues with gh and post a short
+      numbered backlog with the type and labels you propose for each.
+      Change nothing on GitHub yet.
+  - name: "{team}-review"
+    description: The reviewer works pull requests the triager hands over; maintainers approve the review
+    bridge: "{bridge}"
+    agents: ["{triager}", "{reviewer}"]
+    users: ["{$creator}"]
+    instructions: |
+      This is the review room of the maintainer desk for {repo}. The triager
+      hands pull requests to the reviewer here. The reviewer runs the tests
+      and drafts a review; a maintainer approves it before it is posted to
+      GitHub. Agents never merge: a maintainer does.
+    roles:
+      - name: first-reviewer
+        exclusive: true
+        instructions: |
+          You take every pull request handed over in this room. Run the
+          tests, draft the review, and post it only after a maintainer's yes.
+    kickoff: |
+      @{reviewer} this is the review room for {repo}. Say hello in one
+      line and list the open pull requests you can see with gh, oldest
+      first. The triager will hand you new ones here.
+  - name: "{team}-release"
+    description: Merged work and release notes for {repo}
+    bridge: "{bridge}"
+    agents: ["{triager}", "{reviewer}"]
+    users: ["{$creator}"]
+    instructions: |
+      This is the release room of the maintainer desk for {repo}. The
+      reviewer posts a one-line summary of each merged PR here. Ask the
+      triager for release notes when you are ready to tag a release.
+    kickoff: |
+      @{triager} this is the release room for {repo}. In two lines, say
+      what you will keep here, and when a maintainer should ask you for
+      release notes.
+
+links:
+  - from: "{team}-intake"
+    to: "{team}-review"
+    label: pull requests go to review
+  - from: "{team}-review"
+    to: "{team}-release"
+    label: merged work goes to release
