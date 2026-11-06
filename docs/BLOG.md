@@ -2,11 +2,11 @@
 
 *Building Maintainer Desk on Switch, for the Flip the Switch hackathon. A first-timer's walkthrough.*
 
-> Draft. Replace every `<…>` with what really happened in your run, and add 3–4 screenshots: the template form, the intake card, the triager's proposal with your "yes", and the reviewer's finding. Best Blog is judged on clarity, accuracy and how much it helps a first-time Switch user, so keep the steps exact.
+Demo (2:29): https://youtu.be/9JXPkAAXD48 · Code: https://github.com/YashThokal777/maintainer-desk
 
 ## The problem
 
-Every busy repository has the same first hour of the day: read new issues, ask for repro steps, label them, spot duplicates, check out PRs and run the tests before a real review. It's valuable work, and almost all of it is mechanical.
+In one week (Oct 30 – Nov 6, 2026) Switch's own repository got 415 new pull requests. VS Code got 1,488 new issues and PRs, CPython 572 (GitHub search). Every busy repository has the same first hour of the day: read new issues, ask for repro steps, label them, spot duplicates, check out PRs and run the tests before a real review. It's valuable work, and almost all of it is mechanical.
 
 I didn't want a bot that comments on GitHub by itself. I wanted teammates who do the legwork in the chat where my team already talks, and who wait for a person before they touch anything.
 
@@ -26,7 +26,12 @@ The one rule, written into every agent's and every room's instructions: **propos
 
 ## Step 1: run Switch locally
 
-<Your real steps. Mine: installed Switch Console for <OS>, started Docker Desktop, chose "Set up a server on this computer", picked Claude Code for switch-buddy. Time it took: <…>. Gotchas: <…>.>
+I used Switch Console on Windows 11 with Docker Desktop running, and chose to set up a server on this computer. Console then runs Mattermost in Docker and the Switch server (switch-core) natively next to it. Console shows the Mattermost sign-in for its own human account under Messaging apps → Mattermost → ⋯ → Sign-in details, which is how you get into the chat the first time.
+
+Gotchas from my run:
+- **switch-core can stop.** Mine stopped once mid-session and the agents went quiet. Restarting the switch-core process brought it back. If your agents suddenly stop answering, check that first.
+- **Messages sent while an agent is offline still arrive**, and Switch auto-replies "I'm currently offline" for it. Start your agents before you start testing, or your intake room fills with that noise.
+- **Reply in the thread.** My teammate's first "yes" went to the channel instead of the triager's thread, and the triager correctly ignored it. A yes only counts where the proposal is.
 
 Switch ships with Mattermost when you self-host, so you don't need admin rights on a company Slack to build or record anything.
 
@@ -79,11 +84,38 @@ if event == "ping":
     await ws.send(json.dumps({"type": "pong", "cursor": self.cursor, "position": self.position}))
 ```
 
-<What tripped you up, if anything.>
+What tripped me up: `POST /agents/{id}/message` can't reply in a thread, and my whole approval flow depends on threads (one GitHub item, one thread, one yes). The `connect_to_room` + `post_message` operations over the socket solved it.
 
 ## Step 4: the demo
 
-<Describe your real run: the backlog the triager produced at kickoff, the live issue and PR, the triager's proposed command, your teammate's "yes", the reviewer catching that `median([])` still crashes even though the PR's tests passed, the review posted after approval.>
+I ran it live against a small test repo, `YashThokal777/tinystats`. A seed script (`demo/seed_demo_repo.py live`) opens a bug report and a pull request that fixes it:
+
+- **Issue #7:** `mean()` crashes with `ZeroDivisionError` on an empty list.
+- **PR #8:** raise a clear `ValueError` instead, with a test.
+
+Within a minute desk-watcher posted the issue into `desk-intake` and tagged the triager:
+
+![desk-watcher posts issue #7 into desk-intake](https://raw.githubusercontent.com/YashThokal777/maintainer-desk/main/docs/images/intake.jpg)
+
+The triager ran the code and reproduced the crash at `tinystats.py:6`. It also noticed that `median([])` has the same empty-input hole (an `IndexError` at line 15), and that an earlier identical report (#4) had been closed. Then it proposed one exact command and stopped:
+
+```
+gh issue edit 7 --add-label bug --add-label "good first issue" && gh issue comment 7 --body "..."
+```
+
+My teammate Madhur replied **yes** in the thread. Only then did it run the command and report back with a link:
+
+![Madhur says yes in the thread; the triager labels #7 and comments](https://raw.githubusercontent.com/YashThokal777/maintainer-desk/main/docs/images/yes-and-done.jpg)
+
+The triager handed PR #8 to `desk-review` with what to watch for. The reviewer checked out the branch and ran the suite: **4 passed**. Then it probed the edges and found what the tests missed. The PR guards `mean()`, but `median([])` still raises `IndexError` at `tinystats.py:17`. It wrote five findings, each with a file and line, and drafted the review:
+
+![The reviewer's verdict: tests pass, median([]) still crashes](https://raw.githubusercontent.com/YashThokal777/maintainer-desk/main/docs/images/review-verdict.jpg)
+
+One more thing I learned here: GitHub doesn't let you approve or request changes on your own pull request. The reviewer explained that and offered to post the same text as a plain review comment. One more yes, and it was on the PR:
+
+![The review on PR #8 on GitHub](https://raw.githubusercontent.com/YashThokal777/maintainer-desk/main/docs/images/github-review.jpg)
+
+The agents never merge. That stays with people.
 
 ## What I'd tell a first-time Switch user
 
