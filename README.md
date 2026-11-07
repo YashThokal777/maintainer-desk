@@ -20,20 +20,7 @@ Built on [Switch](https://github.com/sandbox-quantum/switch) for the *Flip the S
 4. A maintainer replies `yes` in that thread. Only then does the triager run that command.
 5. Pull requests are handed to **Reviewer** in `#desk-review`. It checks out the PR, runs the tests and posts a verdict, findings with `file:line`, and a draft review.
 6. A maintainer approves the draft and the reviewer posts it to GitHub. Agents never merge. People do.
-7. Merged work is summarised in `#desk-release`, and `@desk-triager release notes` drafts the changelog.
-
-**See it on GitHub.** These are what the agents posted during the recorded demo run, each one after a maintainer said yes in the thread:
-- [The triager's comment on tinystats issue #7](https://github.com/YashThokal777/tinystats/issues/7#issuecomment-6690062461): reproduced at `tinystats.py:6`, flagged the same gap in `median([])`, and labelled the issue `bug` and `good first issue`.
-- [The reviewer's review on tinystats PR #8](https://github.com/YashThokal777/tinystats/pull/8#pullrequestreview-5803709451): 4 tests passed, and `median([])` still crashes, which the PR's own tests missed.
-
-**Measured on the demo run** (Nov 6, 2026; from GitHub event times and Mattermost post times)
-
-| Step | Time |
-| --- | --- |
-| Issue #7 opened on GitHub → triage proposal in `#desk-intake` | 7 min 55 s |
-| Maintainer's `yes` in the thread → labels applied on GitHub | 19 s |
-
-Of the first 7 min 55 s, 6 min 34 s was desk-watcher picking the issue up and 1 min 21 s was the triager reproducing the bug and writing its proposal. The time between the proposal and the `yes` is a person deciding, so it isn't counted. PR #8 opened → drafted review is left out: the reviewer's first run stopped on a Claude usage limit, so that gap measures the outage, not the agent.
+7. When a maintainer says a PR was merged, the reviewer posts a one-line summary in `#desk-release`, and `@desk-triager release notes` drafts the changelog. (The demo doesn't show this room.)
 
 ```mermaid
 flowchart LR
@@ -55,20 +42,35 @@ flowchart LR
   V -. "gh pr review, only after a human yes" .-> GH
 ```
 
+**See it on GitHub.** These are what the agents posted during the recorded demo run, each one after a maintainer said yes in the thread:
+- [The triager's comment on tinystats issue #7](https://github.com/YashThokal777/tinystats/issues/7#issuecomment-6690062461): reproduced at `tinystats.py:6`, flagged the same gap in `median([])`, and labelled the issue `bug` and `good first issue`.
+- [The reviewer's review on tinystats PR #8](https://github.com/YashThokal777/tinystats/pull/8#pullrequestreview-5803709451): 4 tests passed, and `median([])` still crashes, which the PR's own tests missed.
+
+**Measured on the demo run** (Nov 6, 2026; from GitHub event times and Mattermost post times)
+
+| Step | Time |
+| --- | --- |
+| Issue #7 opened on GitHub → triage proposal in `#desk-intake` | 7 min 55 s |
+| Maintainer's `yes` in the thread → labels applied on GitHub | 19 s |
+
+Most of the first number is desk-watcher's polling (6 min 34 s); the triager's own work took 1 min 21 s. Time spent waiting for a person's `yes` isn't counted. PR #8 → drafted review is left out because the reviewer's first run hit a Claude usage limit.
+
 ## Why Switch is the whole project
 
 Take Switch out and nothing is left. Every piece below is a Switch feature:
 
 | Switch feature | How the desk uses it |
 |---|---|
-| **Room group template** ([`templates/maintainer-desk.template.yaml`](templates/maintainer-desk.template.yaml)) | One form in Switch Console creates all three rooms, puts the three agents in them, and sets the instructions, roles and links. Then it posts a kickoff in each room. That makes the desk reproducible in one click. |
-| **The agent protocol** ([`desk_watcher/switch.py`](desk_watcher/switch.py)) | All three agents are custom agents. Each registers through `POST /agents` and holds a WebSocket at `/agents/{id}/connection/ws` (answering `ping` with `pong` + position). They reply in threads with the `connect_to_room` + `post_message` operations. desk-watcher listens with `filter=addressed`. The triager and reviewer use `filter=all`, so they see the whole room and decide for themselves when a bare "yes" is meant for them. |
-| **Claude Code behind the protocol** ([`desk_agents/`](desk_agents/)) | Each chat thread is one headless `claude -p` session, resumed on the next message in that thread. Tools are an allow-list (read, `gh`, `git`, `python`), so the brain can't wander. `desk-post` lets an agent post to another room, which is how the triager hands a PR to the reviewer. |
-| **Addressing** | `python -m desk_agents open-addressing` sets every desk agent to `anyone`, so every maintainer in the room can direct them, not only their owner. Switch only lets an agent's owner change this, never the agent itself. The desk agents share an owner, so each one opens up the others through the `update_agent_detail` operation. |
-| **Room instructions and roles** | Each room carries the desk's rules, including the human gate. The `triage-lead` and `first-reviewer` roles are exclusive, so you can swap the agent behind a job without anyone re-announcing it. |
-| **Linked rooms** | `intake → review → release`. The agents know where each kind of work goes next. |
-| **Collaboration bridges** | The same rooms show up in Discord, Slack, Teams or Mattermost. Maintainers never open another tool. |
-| **Kickoff** | Creating the desk sets it working at once: the triager posts a triaged backlog of the open issues, and the reviewer lists the open PRs. |
+| **Room group template** ([`templates/maintainer-desk.template.yaml`](templates/maintainer-desk.template.yaml)) | One form creates the three rooms, adds the agents, and sets instructions, roles, links and a kickoff per room. |
+| **Agent protocol** ([`desk_watcher/switch.py`](desk_watcher/switch.py)) | All three agents register with `POST /agents`, hold a WebSocket, and reply in threads. The triager and reviewer listen with `filter=all`, so a bare "yes" in their thread reaches them. |
+| **Claude Code behind the protocol** ([`desk_agents/`](desk_agents/)) | One headless `claude -p` session per chat thread, with a tool allow-list (read, `gh`, `git`, `python`). |
+| **Addressing** | `open-addressing` sets every desk agent to `anyone`, so any maintainer can direct them. |
+| **Room instructions and roles** | Each room carries the human gate. `triage-lead` and `first-reviewer` are exclusive roles. |
+| **Linked rooms** | `intake → review → release`, so agents know where work goes next. |
+| **Bridges** | The same rooms work in Discord, Slack, Teams or Mattermost. |
+| **Kickoff** | Creating the desk starts it: the triager posts a triaged backlog, the reviewer lists open PRs. |
+
+**Why custom agents and not Console-managed ones?** On Windows, Console can't run agent sessions ("SDK sessions require a POSIX SSH execution host"), and a server Console runs on your computer only allows agents on that computer. The desk's agents speak the agent protocol directly, so they run anywhere Python and Claude Code do.
 
 ## The human gate
 
@@ -137,8 +139,6 @@ In Switch Console, open the **Templates** page and import [`templates/maintainer
 Then invite your teammates into the three rooms from your chat app.
 
 Open a new issue or PR on the repository, or run `python demo/seed_demo_repo.py live <owner>/tinystats`. It appears in `#desk-intake` within a minute. To skip the wait, say `@desk-watcher check`.
-
-> **Why custom agents and not Console-managed ones?** A server Console runs on your own computer only lets agents run on that computer, and on Windows Console can't run agent sessions at all ("SDK sessions require a POSIX SSH execution host"). The desk's agents speak the agent protocol directly, so they run anywhere Python and Claude Code do.
 
 ### Talking to the desk
 
