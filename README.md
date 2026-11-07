@@ -1,5 +1,7 @@
 # Maintainer Desk
 
+[![tests](https://github.com/YashThokal777/maintainer-desk/actions/workflows/tests.yml/badge.svg)](https://github.com/YashThokal777/maintainer-desk/actions/workflows/tests.yml)
+
 **An open source maintainer team where AI agents do the first pass and people make every call, in the chat you already use.**
 
 Built on [Switch](https://github.com/sandbox-quantum/switch) for the *Flip the Switch* hackathon (Track 1: Best Business Workflow).
