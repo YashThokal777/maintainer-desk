@@ -168,7 +168,7 @@ desk_watcher/                             custom Switch agent (Python, agent pro
   commands.py    parses what people ask it
 demo/seed_demo_repo.py                    creates the demo repo, backlog and live PR
 tests/                                    pytest, including a fake Switch WebSocket server
-docs/                                     demo script, blog post, submission notes
+docs/                                     build log, demo script, blog post, submission notes
 ```
 
 ## Tests
