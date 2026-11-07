@@ -63,7 +63,7 @@ I didn't get here in a straight line. My first plan was to let Switch Console ru
 
 That detour taught me the most important design rule of the project: **one GitHub item, one thread, one yes.** When a teammate's first "yes" landed in the channel instead of the thread, the triager correctly ignored it. A yes only counts where the proposal is.
 
-I also learned where the project is still young. Today the approval gate is a rule the agents follow, written into their instructions and every room's instructions. It isn't yet a check enforced in code. That's the first thing I'd build next: a small gate that runs a proposed command only after the code itself sees an approved reply in the right thread.
+I also learned where the project was still young. During the demo run, the approval gate was a rule the agents followed, written into their instructions and every room's instructions. On the last day I moved it into code. The agents can now only read GitHub, and the desk process runs a proposed command itself, only after it sees a person's plain yes in the right thread. What's left is a read-only GitHub token for the agents' sessions, because they still run Python to reproduce bugs and run tests.
 
 ## Why it matters
 

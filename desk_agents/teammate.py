@@ -4,6 +4,10 @@ It reads every message in its rooms (`filter=all`) and answers when it is
 @mentioned, or when a person writes in a thread it is already working in
 (that is how a bare "yes" reaches it). Each thread gets its own resumed
 Claude session.
+
+The human gate lives here too (see `gate.py`): the agent's last proposed
+command is stored per thread, and a person's plain yes in that thread, after
+the proposal, makes this process run it. Claude itself can't write to GitHub.
 """
 
 from __future__ import annotations
@@ -18,7 +22,7 @@ from pathlib import Path
 
 from desk_watcher.switch import Agent, Message, SwitchError
 
-from . import brain
+from . import brain, gate
 from .roles import Role
 
 log = logging.getLogger("desk_agents")
@@ -35,6 +39,12 @@ class TeammateState:
     connection_id: str = field(default_factory=lambda: str(uuid.uuid4()))
     # "<room_id>:<thread_root>" -> Claude session id
     sessions: dict[str, str] = field(default_factory=dict)
+    # thread key -> {"command": ..., "after": clock when it was proposed}
+    pending: dict[str, dict] = field(default_factory=dict)
+    # thread key -> what the desk ran there since the agent's last turn
+    ran: dict[str, list[str]] = field(default_factory=dict)
+    # Counts arrivals and proposals, so a yes is known to come after its proposal.
+    clock: int = 0
 
     @classmethod
     def load(cls, path: Path) -> "TeammateState":
@@ -72,6 +82,11 @@ class Teammate:
     peers: tuple[str, ...] = ()
     queue: asyncio.Queue = field(default_factory=asyncio.Queue)
     room_names: dict[str, str] = field(default_factory=dict)
+    arrivals: dict[str, int] = field(default_factory=dict)
+
+    def tick(self) -> int:
+        self.state.clock += 1
+        return self.state.clock
 
     def should_answer(self, msg: Message) -> bool:
         if msg.sender in (self.name, self.agent.agent_id) or msg.sender_name == self.name:
@@ -89,6 +104,7 @@ class Teammate:
 
     async def on_message(self, msg: Message) -> None:
         if self.should_answer(msg):
+            self.arrivals[msg.message_id] = self.tick()
             log.info("Queued: %s in %s: %s", msg.sender_name or msg.sender,
                      self.room_name(msg.room_id), msg.body[:80].replace("\n", " "))
             await self.queue.put(msg)
@@ -109,7 +125,9 @@ class Teammate:
     def prompt(self, msg: Message) -> str:
         who = msg.sender_name or msg.sender
         kind = msg.sender_kind or "unknown"
-        return (
+        ran = self.state.ran.pop(thread_key(msg), [])
+        done = "".join(f"Since your last turn, on a maintainer's yes, the desk ran: {r}\n" for r in ran)
+        return done + (
             f"New message in Switch room #{self.room_name(msg.room_id)}"
             f" (thread {msg.thread_root}).\n"
             f"From: {who} ({kind})\n\n{msg.body}\n\n"
@@ -120,6 +138,9 @@ class Teammate:
         if msg.room_id not in self.room_names:
             await self.refresh_rooms()
         key = thread_key(msg)
+        seq = self.arrivals.pop(msg.message_id, None) or self.tick()
+        if await self.apply_if_approved(msg, seq):
+            return
         env = {
             **self.env,
             "DESK_ROOM_ID": msg.room_id,
@@ -149,6 +170,58 @@ class Teammate:
             return
         await self.agent.reply(msg.room_id, text[:MAX_POST], msg.thread_root)
         log.info("Replied in %s (%d chars)", self.room_name(msg.room_id), len(text))
+        self.remember_proposal(key, text)
+
+    def remember_proposal(self, key: str, reply: str) -> None:
+        """Store the reply's proposed command for this thread, if the desk would run it."""
+        command = gate.proposed_command(reply)
+        if not command:
+            return
+        try:
+            gate.check(command, self.repo)
+        except gate.GateError as exc:
+            log.warning("Not storing proposal %r: %s", command[:120], exc)
+            self.state.pending.pop(key, None)
+        else:
+            self.state.pending[key] = {"command": command, "after": self.tick()}
+        self.state.save(self.state_file)
+
+    async def apply_if_approved(self, msg: Message, seq: int) -> bool:
+        """The gate. True when this message was a yes and the desk ran the command."""
+        key = thread_key(msg)
+        pending = self.state.pending.get(key)
+        if not pending or msg.sender_kind != "user":
+            return False
+        answer = gate.verdict(msg.body, self.name)
+        if answer == "no":
+            # The agent still answers, but this proposal can no longer be approved.
+            del self.state.pending[key]
+            self.state.save(self.state_file)
+            return False
+        # Only a plain yes, written after the proposal was posted, counts.
+        if answer != "yes" or seq <= pending["after"]:
+            return False
+        del self.state.pending[key]
+        self.state.save(self.state_file)
+        who = msg.sender_name or msg.sender
+        try:
+            argv = gate.check(pending["command"], self.repo)
+            ran = await gate.run(argv, cwd=self.workdir, env=self.env)
+        except gate.GateError as exc:
+            ran = gate.Ran(pending["command"], -1, str(exc))
+        ok = ran.returncode == 0
+        tail = ran.output[-1500:] or "(no output)"
+        shown = ran.command
+        if len(shown) > 160 or "\n" in shown or "`" in shown:
+            shown = " ".join(shown.split()[:4]) + " …"  # a long review body stays out of the line
+        text = (f"{'Done' if ok else 'That failed'}, on {who}'s yes: `{shown}`"
+                + ("" if ok else f" (exit {ran.returncode})") + f"\n```\n{tail}\n```")
+        self.state.ran.setdefault(key, []).append(
+            f"`{ran.command}` (exit {ran.returncode}): {ran.output[-500:]}")
+        self.state.save(self.state_file)
+        await self.agent.reply(msg.room_id, text[:MAX_POST], msg.thread_root)
+        log.info("Gate: ran %s on %s's yes (exit %s)", ran.command[:80], who, ran.returncode)
+        return True
 
     async def typing(self, room_id: str, on: bool) -> None:
         try:

@@ -63,7 +63,7 @@ Take Switch out and nothing is left. Every piece below is a Switch feature:
 |---|---|
 | **Room group template** ([`templates/maintainer-desk.template.yaml`](templates/maintainer-desk.template.yaml)) | One form creates the three rooms, adds the agents, and sets instructions, roles, links and a kickoff per room. |
 | **Agent protocol** ([`desk_watcher/switch.py`](desk_watcher/switch.py)) | All three agents register with `POST /agents`, hold a WebSocket, and reply in threads. The triager and reviewer listen with `filter=all`, so a bare "yes" in their thread reaches them. |
-| **Claude Code behind the protocol** ([`desk_agents/`](desk_agents/)) | One headless `claude -p` session per chat thread, with a tool allow-list (read, `gh`, `git`, `python`). |
+| **Claude Code behind the protocol** ([`desk_agents/`](desk_agents/)) | One headless `claude -p` session per chat thread, with a tool allow-list (read, read-only `gh`, local `git`, `python`). |
 | **Addressing** | `open-addressing` sets every desk agent to `anyone`, so any maintainer can direct them. |
 | **Room instructions and roles** | Each room carries the human gate. `triage-lead` and `first-reviewer` are exclusive roles. |
 | **Linked rooms** | `intake → review → release`, so agents know where work goes next. |
@@ -74,11 +74,14 @@ Take Switch out and nothing is left. Every piece below is a Switch feature:
 
 ## The human gate
 
-Every agent follows the same rule, set in its instructions and in each room's instructions:
+The gate is enforced in code ([`desk_agents/gate.py`](desk_agents/gate.py)), not only written in the instructions:
 
-> Read GitHub freely. Change nothing on GitHub (labels, comments, reviews, closing) until a person in the room has said yes to that exact action. Never merge.
+- **The agents can only read GitHub.** Their Claude sessions may run read-only `gh` (view, list, diff, search, checks, checkout) and local `git`, with no push. In headless mode anything else is refused, not asked about.
+- **They propose, the desk runs.** An agent ends its reply with **Proposed action:** and the exact command (`gh issue edit 12 --add-label bug`). The desk process stores it for that thread.
+- **Only a person's plain yes, in that thread, after the proposal, runs it.** One yes runs one command, once. A yes in the channel, in another thread, from an agent, or typed before the proposal was posted does nothing. "no" or "hold" cancels it. An edit means a new proposal and a fresh yes. "ok sure" isn't a plain yes, so it goes back to the agent.
+- **Even on a yes, only these run:** `gh issue edit|comment` and `gh pr edit|comment|review`, on the desk's own repo. Never merge, close, delete or `gh api`.
 
-The agents propose the exact command (`gh issue edit 12 --add-label bug`), so the yes is specific. The allow-list adds a second layer: in headless mode any tool outside it is refused, not asked about.
+[`tests/test_gate.py`](tests/test_gate.py) covers each of these cases. The same rule is also in every agent's and every room's instructions. One gap is still open: the agents can run Python, because they reproduce bugs and run tests, so a model that went looking could reach GitHub's API that way. Giving their sessions a read-only GitHub token closes it, and that's next.
 
 ---
 
@@ -156,7 +159,8 @@ Open a new issue or PR on the repository, or run `python demo/seed_demo_repo.py 
 ```
 templates/maintainer-desk.template.yaml   the desk: rooms, agents in them, roles, links, kickoffs
 desk_agents/                              the triager and reviewer: custom agents with a Claude Code brain
-  roles.py       their instructions, the human gate, and the tool allow-list
+  roles.py       their instructions and the tool allow-list (read-only gh)
+  gate.py        the human gate in code: runs a proposed gh write only on a person's yes in the thread
   teammate.py    who to answer (mention, or a person in a thread it's working), one session per thread
   brain.py       runs `claude -p`, resumes the thread's session
   __main__.py    register / run / open-addressing, and `desk-post`
@@ -177,7 +181,7 @@ docs/                                     build log, demo script, blog post, sub
 pip install -e ".[dev]" && pytest
 ```
 
-The tests cover the cards, command parsing, GitHub diffing, pause and resume, when a teammate answers (and when it stays quiet), threaded replies and session resume, reading Claude's output, and the protocol loop. That last test runs against a local WebSocket server that sends `connection_state`, `ping` and an addressed `message` frame. It checks that the watcher opens the socket with the right parameters, pongs with its cursor and answers in the room. The template passes Switch's own template linter (`switch_core.template_lint`) and its room-group schema with no warnings.
+The tests cover the cards, command parsing, GitHub diffing, pause and resume, when a teammate answers (and when it stays quiet), threaded replies and session resume, the human gate (what counts as a yes, and every way a yes must not run anything), reading Claude's output, and the protocol loop. That last test runs against a local WebSocket server that sends `connection_state`, `ping` and an addressed `message` frame. It checks that the watcher opens the socket with the right parameters, pongs with its cursor and answers in the room. The template passes Switch's own template linter (`switch_core.template_lint`) and its room-group schema with no warnings.
 
 ## What's next
 

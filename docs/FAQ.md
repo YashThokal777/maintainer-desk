@@ -2,9 +2,11 @@
 
 **1. What stops the triager from labelling or closing something without permission?**
 
-Today the gate lives in the instructions. Every agent, and every room, carries the same rule: read GitHub freely, change nothing until a person in the thread has said a clear yes ("yes", "approve", "go", "apply") to the exact command the agent proposed. The agents never merge, never close PRs and never delete. The tool allow-list (read, `gh`, `git`, `python` and a few others) limits the blast radius: anything outside it is refused in headless mode. But `gh` is on the list, so the allow-list alone doesn't block a GitHub write. The yes is a rule the model follows, not a check the code enforces.
+Code. The agents' Claude sessions can only read GitHub: read-only `gh` (view, list, diff, search, checks, checkout) and local `git` with no push. Anything else is refused in headless mode. A GitHub write happens in one place, the desk process itself ([`desk_agents/gate.py`](../desk_agents/gate.py)). The agent ends its reply with a **Proposed action:**, the exact command. The desk stores it for that thread and runs it only when a person (not an agent) answers in the same thread, after the proposal, with a plain yes ("yes", "approve", "go", "apply"). One yes runs one command, once. "no" or "hold" cancels it, and an edit means a new proposal and a fresh yes. Even on a yes, the desk only runs `gh issue edit|comment` and `gh pr edit|comment|review` on its own repo: never merge, close, delete or `gh api`. [`tests/test_gate.py`](../tests/test_gate.py) covers each case.
 
-If someone says "ok sure", it isn't one of the listed yes words, so the agent has to judge it. I haven't tested that case. In the demo, a "yes" sent to the channel instead of the thread was correctly ignored. The next step is to make the gate deterministic: the agent writes its proposed command to a file, and a small wrapper runs it only after code sees an approved reply in that thread.
+If someone says "ok sure", it isn't a plain yes, so nothing runs: the message goes to the agent, which can only answer or propose again. In the demo run on Nov 6 the gate was still a rule in the instructions, and a "yes" sent to the channel instead of the thread was correctly ignored. On Nov 7 the gate moved into code, so that case is now a check, not a judgment.
+
+One gap is still open. The agents can run Python, because the triager reproduces bugs and the reviewer runs tests. A model that went looking could call GitHub's API from Python with the signed-in account. The fix is a read-only GitHub token for the agents' sessions, with write access held only by the desk process.
 
 **2. Why team chat instead of a GitHub bot that comments on its own?**
 
@@ -32,7 +34,7 @@ Switch Console with Docker Desktop, Claude Code signed in, the GitHub CLI signed
 
 **7. If you had one more week, what would you build first?**
 
-The deterministic approval gate from answer 1, because it turns the core promise ("nothing reaches GitHub without a yes") from a rule into a guarantee. After that, a GitHub webhook instead of polling, and posting new commits on a PR into the thread where it was already reviewed.
+A read-only GitHub token for the agents' sessions, so the code gate from answer 1 covers every path to GitHub, not just `gh`. That makes the core promise ("nothing reaches GitHub without a yes") a guarantee end to end. After that, a GitHub webhook instead of polling, and posting new commits on a PR into the thread where it was already reviewed.
 
 **8. One thing to ask the Switch team**
 

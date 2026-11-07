@@ -93,6 +93,12 @@ def test_roles_name_and_gate():
         text = role.instructions.format(name=role.name("desk"), team="desk", repo="o/r")
         assert "Never merge" in text and "NO_REPLY" in text
         assert not any(t.startswith("Bash(rm") or t == "Bash" for t in role.tools)
+        # Claude may read GitHub but never write to it: no bare gh, no gh api, no git push.
+        assert "Bash(gh:*)" not in role.tools and "Bash(git:*)" not in role.tools
+        gh = [t for t in role.tools if t.startswith("Bash(gh ")]
+        writes = ("edit", "comment", "review", "merge", "close", "api", "delete", "create")
+        assert gh and not any(w in t for t in gh for w in writes)
+        assert not any("push" in t for t in role.tools)
 
 
 def test_handle_threads_reply_and_remembers_session(tmp_path, monkeypatch):
@@ -109,12 +115,12 @@ def test_handle_threads_reply_and_remembers_session(tmp_path, monkeypatch):
         async with httpx.AsyncClient(base_url="http://switch", transport=httpx.MockTransport(switch)) as http:
             mate = make_mate(tmp_path, http)
             await mate.handle(msg("New issue #4 @desk-triager", kind="agent", name="desk-watcher", mid="card"))
-            # The follow-up "yes" resumes the same Claude session.
-            await mate.handle(msg("yes", thread="card", mid="m2"))
+            # A follow-up in the thread resumes the same Claude session.
+            await mate.handle(msg("is it a dup?", thread="card", mid="m2"))
             return mate
 
     mate = asyncio.run(go())
-    assert "#desk-intake" in seen["prompt"] and "yes" in seen["prompt"]
+    assert "#desk-intake" in seen["prompt"] and "is it a dup?" in seen["prompt"]
     assert seen["session_id"] == "sess-1"
     assert seen["env"]["DESK_THREAD_ID"] == "card"
     assert mate.state.sessions == {"r1:card": "sess-1"}
