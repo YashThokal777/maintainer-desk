@@ -88,6 +88,22 @@ class Teammate:
         self.state.clock += 1
         return self.state.clock
 
+    def is_person(self, msg: Message) -> bool:
+        """Whether a person (not an agent or Switch itself) wrote this message.
+
+        Switch 0.31 marks only platform messages in live events; a person's
+        message arrives with no sender_kind. So: anything marked agent or
+        platform is not a person, a workspace role means a person, and an
+        unmarked message counts as a person's unless one of the desk's own
+        agents sent it.
+        """
+        if msg.sender_kind in ("agent", "platform"):
+            return False
+        if msg.sender_kind == "user" or msg.sender_role:
+            return True
+        agents = {self.name.lower(), *(p.lower() for p in self.peers), (self.agent.agent_id or "").lower()}
+        return (msg.sender_name or "").lower() not in agents and (msg.sender or "").lower() not in agents
+
     def should_answer(self, msg: Message) -> bool:
         if msg.sender in (self.name, self.agent.agent_id) or msg.sender_name == self.name:
             return False
@@ -100,7 +116,7 @@ class Teammate:
         if any(mentions(msg.body, p) for p in self.peers):
             return False
         # A person following up in a thread this agent is working in.
-        return msg.sender_kind == "user" and thread_key(msg) in self.state.sessions
+        return self.is_person(msg) and thread_key(msg) in self.state.sessions
 
     async def on_message(self, msg: Message) -> None:
         if self.should_answer(msg):
@@ -190,9 +206,13 @@ class Teammate:
         """The gate. True when this message was a yes and the desk ran the command."""
         key = thread_key(msg)
         pending = self.state.pending.get(key)
-        if not pending or msg.sender_kind != "user":
-            return False
         answer = gate.verdict(msg.body, self.name)
+        if pending:
+            log.info("Gate check in %s: from %s (kind=%s, role=%s, person=%s), answer=%s, seq=%s, "
+                     "proposed at %s", key, msg.sender_name or msg.sender, msg.sender_kind,
+                     msg.sender_role, self.is_person(msg), answer, seq, pending["after"])
+        if not pending or not self.is_person(msg):
+            return False
         if answer == "no":
             # The agent still answers, but this proposal can no longer be approved.
             del self.state.pending[key]

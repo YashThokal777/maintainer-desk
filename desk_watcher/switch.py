@@ -86,6 +86,9 @@ class Message:
     # "user" (a person on a bridge), "agent" or "platform" (Switch itself,
     # e.g. a template's kickoff).
     sender_kind: str | None = None
+    # The person's role in the room's workspace ("owner", "admin", "member");
+    # None for agents, the platform, or a person no Switch user has claimed.
+    sender_role: str | None = None
 
     @property
     def thread_root(self) -> str:
@@ -285,6 +288,7 @@ class Agent:
                         thread_id=payload.get("thread_id"),
                         message_id=payload.get("message_id", ""),
                         sender_kind=payload.get("sender_kind"),
+                        sender_role=payload.get("sender_role"),
                     )
                 )
         return None

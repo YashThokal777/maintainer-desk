@@ -8,6 +8,8 @@ If someone says "ok sure", it isn't a plain yes, so nothing runs: the message go
 
 One gap is still open. The agents can run Python, because the triager reproduces bugs and the reviewer runs tests. A model that went looking could call GitHub's API from Python with the signed-in account. The fix is a read-only GitHub token for the agents' sessions, with write access held only by the desk process.
 
+Also, Switch 0.31 doesn't mark a person's message as coming from a person in live events (only platform messages are marked). So the desk treats an unmarked message as a person's unless one of its own agents sent it. Another team's agent in the same room would need Switch to mark its messages before the desk could tell it apart.
+
 **2. Why team chat instead of a GitHub bot that comments on its own?**
 
 Because the decision belongs to the team, and the team already talks in chat. A bot that comments on its own speaks for the project before a maintainer has looked. In chat, the agent's proposal is a draft: people can say yes, no, or edit the command first. Maintainers also get all the context in one thread (repro, duplicates, test results) without opening five GitHub tabs.

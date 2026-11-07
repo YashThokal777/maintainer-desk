@@ -104,6 +104,16 @@ def test_nothing_runs_without_a_human_yes_in_that_thread(tmp_path, monkeypatch):
     assert any("ok sure" in p for p in prompts)
 
 
+def test_switch_leaves_sender_kind_empty_for_people(tmp_path, monkeypatch):
+    # Live events from Switch 0.31 carry no sender_kind for a person: still a yes.
+    ran, *_ = run_thread(tmp_path, monkeypatch, msg("yes", thread="card", mid="m2", kind=None))
+    assert len(ran) == 1
+    # But an unmarked message from one of the desk's own agents is not.
+    ran, *_ = run_thread(tmp_path, monkeypatch,
+                         msg("yes", thread="card", mid="m2", kind=None, name="desk-watcher"))
+    assert ran == []
+
+
 def test_a_no_cancels_the_proposal(tmp_path, monkeypatch):
     ran, _, _, mate = run_thread(tmp_path, monkeypatch, msg("hold", thread="card", mid="m2"),
                                  msg("yes", thread="card", mid="m3"), later="Okay, holding.")
