@@ -8,7 +8,7 @@ Built on [Switch](https://github.com/sandbox-quantum/switch) for the *Flip the S
 
 > Maintainers drown in notifications. In one week (Oct 30 – Nov 6, 2026) the Switch repo got 415 new pull requests. Maintainer Desk turns a GitHub repository into three chat rooms where a triager agent and a reviewer agent sort issues, reproduce bugs, run the tests on every PR and draft the review. The humans in the room answer **yes**, **no** or with an edit. Nothing touches GitHub without that yes.
 
-**Demo video (2:29):** https://youtu.be/9JXPkAAXD48
+**Demo video (4:03):** https://youtu.be/GFWQGjrnIP0
 
 ---
 
