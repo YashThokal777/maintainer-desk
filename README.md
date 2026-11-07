@@ -185,6 +185,12 @@ The tests cover the cards, command parsing, GitHub diffing, pause and resume, wh
 - Use a GitHub webhook instead of polling.
 - A `security` role in the review room, held by a dedicated agent for PRs that touch auth or dependencies.
 
+## Built with
+
+[Switch](https://github.com/sandbox-quantum/switch), [Claude Code](https://claude.com/claude-code), Python and the [GitHub CLI](https://cli.github.com).
+
+The final polish on November 7, 2026 (the docs, CI and the demo-run measurements) was done by dictating to Claude Code with [Wispr Flow](https://wisprflow.ai).
+
 ## License
 
 MIT
