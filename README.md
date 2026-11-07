@@ -22,6 +22,10 @@ Built on [Switch](https://github.com/sandbox-quantum/switch) for the *Flip the S
 6. A maintainer approves the draft and the reviewer posts it to GitHub. Agents never merge. People do.
 7. Merged work is summarised in `#desk-release`, and `@desk-triager release notes` drafts the changelog.
 
+**See it on GitHub.** These are what the agents posted during the recorded demo run, each one after a maintainer said yes in the thread:
+- [The triager's comment on tinystats issue #7](https://github.com/YashThokal777/tinystats/issues/7#issuecomment-6690062461): reproduced at `tinystats.py:6`, flagged the same gap in `median([])`, and labelled the issue `bug` and `good first issue`.
+- [The reviewer's review on tinystats PR #8](https://github.com/YashThokal777/tinystats/pull/8#pullrequestreview-5803709451): 4 tests passed, and `median([])` still crashes, which the PR's own tests missed.
+
 ```mermaid
 flowchart LR
   GH[("GitHub repo")] -- new issue / PR --> W["desk-watcher<br/>custom agent, agent protocol"]
