@@ -53,7 +53,7 @@ flowchart LR
 | Issue #7 opened on GitHub → triage proposal in `#desk-intake` | 7 min 55 s |
 | Maintainer's `yes` in the thread → labels applied on GitHub | 19 s |
 
-Most of the first number is desk-watcher's polling (6 min 34 s); the triager's own work took 1 min 21 s. Time spent waiting for a person's `yes` isn't counted. PR #8 → drafted review is left out because the reviewer's first run hit a Claude usage limit.
+Most of the first number is desk-watcher picking the issue up (6 min 34 s); the triager's own work took 1 min 21 s. Time spent waiting for a person's `yes` isn't counted. PR #8 → drafted review is left out because the reviewer's first run hit a Claude usage limit.
 
 ## Why Switch is the whole project
 
