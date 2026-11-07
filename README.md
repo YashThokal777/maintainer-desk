@@ -26,6 +26,15 @@ Built on [Switch](https://github.com/sandbox-quantum/switch) for the *Flip the S
 - [The triager's comment on tinystats issue #7](https://github.com/YashThokal777/tinystats/issues/7#issuecomment-6690062461): reproduced at `tinystats.py:6`, flagged the same gap in `median([])`, and labelled the issue `bug` and `good first issue`.
 - [The reviewer's review on tinystats PR #8](https://github.com/YashThokal777/tinystats/pull/8#pullrequestreview-5803709451): 4 tests passed, and `median([])` still crashes, which the PR's own tests missed.
 
+**Measured on the demo run** (Nov 6, 2026; from GitHub event times and Mattermost post times)
+
+| Step | Time |
+| --- | --- |
+| Issue #7 opened on GitHub → triage proposal in `#desk-intake` | 7 min 55 s |
+| Maintainer's `yes` in the thread → labels applied on GitHub | 19 s |
+
+Of the first 7 min 55 s, 6 min 34 s was desk-watcher picking the issue up and 1 min 21 s was the triager reproducing the bug and writing its proposal. The time between the proposal and the `yes` is a person deciding, so it isn't counted. PR #8 opened → drafted review is left out: the reviewer's first run stopped on a Claude usage limit, so that gap measures the outage, not the agent.
+
 ```mermaid
 flowchart LR
   GH[("GitHub repo")] -- new issue / PR --> W["desk-watcher<br/>custom agent, agent protocol"]
