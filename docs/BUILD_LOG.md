@@ -18,6 +18,6 @@ The key decisions behind Maintainer Desk, in the order they were made. Built sol
 
 **8. Live run, with two surprises (Nov 6, evening).** GitHub doesn't let you approve or request changes on your own PR, so the reviewer offered a plain review comment instead, and posted it after a second yes. The reviewer's first run also stopped on a Claude usage limit and was re-run once the limit reset. It still caught a bug the PR's tests missed: `median([])` crashes.
 
-**9. Demo video.** A 2:29 motion-graphics cut built with HyperFrames, with AI narration (Kokoro TTS) and a CC0 music track. On Nov 7 it was replaced by a 4:03 cut of the same run, using real captures of issue #7 and PR #8 and sound from the Earshot bank.
+**9. Demo video.** A 2:29 motion-graphics cut built with HyperFrames, with AI narration (Kokoro TTS) and a CC0 music track. On Nov 7 a longer 4:03 film of the same run was added, with real captures of issue #7 and PR #8 and sound from the Earshot bank. The 2:29 cut stays the official demo because the rules ask for under 3 minutes.
 
 **10. Final polish by voice (Nov 7).** The docs fixes, CI, GitHub proof links and demo-run measurements were done by dictating to Claude Code with Wispr Flow.

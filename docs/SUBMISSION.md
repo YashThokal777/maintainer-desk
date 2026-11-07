@@ -13,7 +13,7 @@ Open source and product teams lose hours a week to first-pass triage: labelling 
 
 **Links**
 - Repository: https://github.com/YashThokal777/maintainer-desk
-- Demo video: https://youtu.be/GFWQGjrnIP0
+- Demo video: https://youtu.be/9JXPkAAXD48
 - Blog post: https://dev.to/yash_thokal_a1899d36b0351/i-gave-my-github-repo-an-ai-triage-team-that-cant-do-anything-without-my-yes-1h6n
 - #HowISwitch post: https://www.linkedin.com/feed/update/urn:li:activity:7524555203140960257/
 

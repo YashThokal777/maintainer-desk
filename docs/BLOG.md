@@ -2,7 +2,7 @@
 
 *Building Maintainer Desk on Switch, for the Flip the Switch hackathon. A first-timer's walkthrough.*
 
-Demo (4:03): https://youtu.be/GFWQGjrnIP0 · Code: https://github.com/YashThokal777/maintainer-desk
+Demo (2:29): https://youtu.be/9JXPkAAXD48 · Code: https://github.com/YashThokal777/maintainer-desk
 
 ## The problem
 
@@ -128,7 +128,8 @@ The agents never merge. That's the bit that stays with the people.
 ## Links
 
 - Code: https://github.com/YashThokal777/maintainer-desk
-- Demo video: https://youtu.be/GFWQGjrnIP0
+- Demo video: https://youtu.be/9JXPkAAXD48
+- The longer story (4:03): https://youtu.be/GFWQGjrnIP0
 - Switch: https://github.com/sandbox-quantum/switch · docs: https://docs.switchagents.ai
 
 #HowISwitch
